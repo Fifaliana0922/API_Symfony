@@ -2,16 +2,20 @@
 
 namespace App\Controller;
 
+use App\Entity\Book;
 use App\Repository\BookRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 final class BookController extends AbstractController
 {
-    #[Route('/api/books', name: 'all_books', methods: ['GET'])]
+    #[Route('/api/books', name: 'allBooks', methods: ['GET'])]
     public function getAllBooks(BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
     {
         $bookList = $bookRepository->findAll();
@@ -20,20 +24,41 @@ final class BookController extends AbstractController
         return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/api/book/{id}', name: 'detail_book', methods: ['GET'])]
+    #[Route('/api/book/{id}', name: 'detailBook', methods: ['GET'])]
     public function getBookById(int $id, BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
     {
         $bookById = $bookRepository->find($id);
         if ($bookById) {
             $jsonBookById = $serializer->serialize($bookById, 'json', ["groups" => "getBooks"]);
 
-            return new JsonResponse(
-                $jsonBookById,
-                Response::HTTP_OK,
-                [],
-                true
-            );
+            return new JsonResponse($jsonBookById, Response::HTTP_OK, [], true);
         }
         return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+    }
+
+    #[Route('/api/book/{id}', name: 'deleteBook', methods: ["DELETE"])]
+    public function deleteBookById(Book $book, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $entityManager->remove($book);
+        $entityManager->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/api/book', name: 'addBook', methods: ["POST"])]
+    public function addBook(
+        Request $request,
+        SerializerInterface $serializer,
+        EntityManagerInterface $entityManager,
+        UrlGeneratorInterface $urlGenerator
+    ): JsonResponse {
+        $book = $serializer->deserialize($request->getContent(), Book::class, 'json');
+        $entityManager->persist($book);
+        $entityManager->flush();
+
+        $jsonNewBook = $serializer->serialize($book, 'json', ['groups' => "getBooks"]);
+        $location = $urlGenerator->generate('detailBook', ['id' => $book->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+
+        return new JsonResponse($jsonNewBook, Response::HTTP_CREATED, ["Location" => $location], true);
     }
 }
