@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Book;
+use App\Repository\AuthorRepository;
 use App\Repository\BookRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -50,9 +51,16 @@ final class BookController extends AbstractController
         Request $request,
         SerializerInterface $serializer,
         EntityManagerInterface $entityManager,
-        UrlGeneratorInterface $urlGenerator
+        UrlGeneratorInterface $urlGenerator,
+        AuthorRepository $authorRepository
     ): JsonResponse {
         $book = $serializer->deserialize($request->getContent(), Book::class, 'json');
+
+        //Récupération des données sous formes de tableau
+        $content = $request->toArray();
+        $authorId = $content['idAuthor'] ?? -1;
+        $book->setAuthor($authorRepository->find($authorId));
+
         $entityManager->persist($book);
         $entityManager->flush();
 
