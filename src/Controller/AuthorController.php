@@ -10,11 +10,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 
 final class AuthorController extends AbstractController
 {
-    #[Route('/api/author/{id}', name: 'detail_author', methods: ["GET"])]
+    #[Route('/api/author/{id}', name: 'getAuthor', methods: ["GET"])]
     public function getAuthor(int $id, AuthorRepository $author, SerializerInterface $serializer): JsonResponse
     {
         $author = $author->find($id);
@@ -25,7 +26,7 @@ final class AuthorController extends AbstractController
         return new JsonResponse(null, Response::HTTP_NOT_FOUND);
     }
 
-    #[Route('/api/authors', name: 'all_authors', methods: ["GET"])]
+    #[Route('/api/authors', name: 'getAllAuthor', methods: ["GET"])]
     public function getAllAuthor(AuthorRepository $author, SerializerInterface $serializer): JsonResponse
     {
         $authors = $author->findAll();
@@ -52,5 +53,25 @@ final class AuthorController extends AbstractController
         $entityManager->flush();
 
         return new JsonResponse($jsonAuthor, Response::HTTP_CREATED, [], true);
+    }
+
+    #[Route("/api/author/{id}", name: "updateAuthor", methods: ["PUT"])]
+    public function updateAuthor(
+        SerializerInterface $serializer,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        Author $currentAuthor
+    ): JsonResponse {
+        $updateAuthor = $serializer->deserialize($request->getContent(), Author::class, "json", [AbstractNormalizer::OBJECT_TO_POPULATE => $currentAuthor]);
+        $content = $request->toArray();
+        $nameAuthor = $content["name"] ?? null;
+        $firstNameAuthor = $content["firstName"] ?? null;
+        $updateAuthor->setFirstName($firstNameAuthor);
+        $updateAuthor->setName($nameAuthor);
+
+        $entityManager->persist($updateAuthor);
+        $entityManager->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }
