@@ -25,7 +25,7 @@ class Book
     private ?string $coverText = null;
 
     #[ORM\ManyToOne(inversedBy: 'books')]
-    // #[Groups(["getBooks"])]
+    #[Groups(["getAuthor"])]
     private ?Author $author = null;
 
     public function getId(): ?int
