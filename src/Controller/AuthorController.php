@@ -74,4 +74,13 @@ final class AuthorController extends AbstractController
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
+
+    #[Route("/api/author/{id}", name: "deleteAuthor", methods: ["DELETE"])]
+    public function deleteAuthor(Author $author, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $entityManager->remove($author);
+        $entityManager->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
 }
