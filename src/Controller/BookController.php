@@ -14,6 +14,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class BookController extends AbstractController
 {
@@ -53,17 +54,24 @@ final class BookController extends AbstractController
         SerializerInterface $serializer,
         EntityManagerInterface $entityManager,
         UrlGeneratorInterface $urlGenerator,
-        AuthorRepository $authorRepository
+        AuthorRepository $authorRepository,
+        ValidatorInterface $validator
     ): JsonResponse {
         $book = $serializer->deserialize($request->getContent(), Book::class, 'json');
+        $errors = $validator->validate($book);
 
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, "json"), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
+
+        $entityManager->persist($book);
+        $entityManager->flush();
+        
         //Récupération des données sous formes de tableau
         $content = $request->toArray();
         $authorId = $content['idAuthor'] ?? -1;
         $book->setAuthor($authorRepository->find($authorId));
 
-        $entityManager->persist($book);
-        $entityManager->flush();
 
         $jsonNewBook = $serializer->serialize($book, 'json', ['groups' => "getBooks"]);
         $location = $urlGenerator->generate('detailBook', ['id' => $book->getId()], UrlGeneratorInterface::ABSOLUTE_URL);

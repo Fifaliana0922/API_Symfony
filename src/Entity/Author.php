@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: AuthorRepository::class)]
 class Author
@@ -18,6 +19,8 @@ class Author
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "Le nom de l'auteur est obligatoire")]
+    #[Assert\Length(min: 1, max: 10, minMessage: "Le nom doit être supérieur à {{limit}}",maxMessage: "Le nom ne doit pas dépaser les {{limit}} caractères")]
     #[Groups(["getBooks", "getAuthor"])]
     private ?string $name = null;
 
